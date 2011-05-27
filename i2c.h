@@ -14,6 +14,9 @@
  * You should have received a copy of the GNU General Public License
  * along with Radeonvolt.  If not, see <http://www.gnu.org/licenses/>.
  */
+#ifndef I2C_H
+#define I2C_H
+
 #include "types.h"
 
 #define RV8XX_GPIO_PIN_SCL	0x29
@@ -107,4 +110,6 @@ void i2c_write_byte(void *base, u8 address, u8 offset, u8 value);
  * @return byte read
  */
 u8 i2c_read_byte(void *base, u8 address, u8 offset);
+
+#endif
 

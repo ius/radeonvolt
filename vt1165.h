@@ -14,6 +14,9 @@
  * You should have received a copy of the GNU General Public License
  * along with Radeonvolt.  If not, see <http://www.gnu.org/licenses/>.
  */
+#ifndef VT1165_H
+#define VT1165_H
+
 #include "types.h"
 
 #define VT1165_ADDRESS			0x70
@@ -85,4 +88,6 @@ float vt1165_get_voltage(struct rv8xx_i2c *i2c, u8 index);
  * @param value Voltage index
  */
 void vt1165_set_voltage(struct rv8xx_i2c *i2c, u8 index, u8 value);
+
+#endif
 
