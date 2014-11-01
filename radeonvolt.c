@@ -16,7 +16,7 @@
  */
 #include <stdlib.h>
 #include <stdio.h>
-# include <string.h>
+#include <string.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/mman.h>
@@ -98,8 +98,8 @@ unsigned int enum_cards()
 	pci_scan_bus(pci);
 
 	for(dev = pci->devices; dev && num_cards < MAX_CARDS; dev = dev->next) {
-		if(dev->device_class == PCI_CLASS_DISPLAY_VGA &&
-		   dev->vendor_id == 0x1002 && dev->device_id == 0x6899) {
+		if(dev->device_class == PCI_CLASS_DISPLAY_VGA ||
+		   dev->device_class == PCI_CLASS_DISPLAY_OTHER) {
 			card = NULL;
 
 			for(i = 0; i < 6 && !card; i++) {
@@ -158,7 +158,7 @@ void radeon_release(struct mem_ctx *mem)
  * @param card card
  * @param i2c i2c controller
  */
-void show_info(struct card *card, struct rv8xx_i2c *i2c)
+void show_info(struct card *card, struct rv8xx_i2c *i2c, int profile)
 {
 	unsigned char data;
 
@@ -172,10 +172,10 @@ void show_info(struct card *card, struct rv8xx_i2c *i2c)
 	}
 
 	if(vt1165_vid_mode(i2c) == 3) {
-		float voltage = vt1165_get_voltage(i2c, 2);
+		float voltage = vt1165_get_voltage(i2c, profile);
 
 		float current = vt1165_avg_current(i2c);
-		printf("\tCurrent core voltage: %.4f V\n", voltage);
+		printf("\tCurrent profile %d core voltage: %.4f V\n", profile, voltage);
 		printf("\tPresets: %.4f / %.4f / %.4f / %.4f V\n",
 			vt1165_get_voltage(i2c, 0),
 			vt1165_get_voltage(i2c, 1),
@@ -199,8 +199,9 @@ void show_usage()
 	printf("Usage: radeonvolt [options]\n\n");
 	printf("Optional arguments:\n");
 	printf("  --device  device to query/modify\n");
-	printf("  --vcore    set core voltage (in V)\n");
-	printf("\nExample: radeonvolt --device 0 --vcore 1.0875\n");
+	printf("  --vcore   set core voltage (in V)\n");
+	printf("  --profile which profile to modify\n"); 
+	printf("\nExample: radeonvolt --device 0 --vcore 1.0875 --profile 3\n");
 }
 
 int main(int argc, char *argv[])
@@ -211,8 +212,9 @@ int main(int argc, char *argv[])
 	float vddc = -1;
 	int device = -1;
 	int i;
+	int profile;
 
-	if(argc % 2 != 1) {
+	if(argc == 0) {
 		show_usage();
 		return 1;
 	}
@@ -222,6 +224,8 @@ int main(int argc, char *argv[])
 			device = atoi(argv[++i]);
 		} else if(!strcmp(argv[i], "--vcore")) {
 			vddc = atof(argv[++i]);
+		} else if(!strcmp(argv[i], "--profile")) {
+			profile = atoi(argv[++i]);
 		} else {
 			show_usage();
 			return 1;
@@ -244,7 +248,7 @@ int main(int argc, char *argv[])
 					if(vddc < MAX_VOLTAGE) {
 						u8 value = (u8)((vddc - 0.450f) / 0.0125f);
 						printf("Setting vddc of device %d to %.4f V (%#02x)\n", cards[i].bus, vddc, value);
-						vt1165_set_voltage(&i2c, 2, value);
+						vt1165_set_voltage(&i2c, profile, value);
 					} else {
 						fprintf(stderr, "Specified vddc (%.4f V) doesn't seem sane. Not setting..\n", vddc);
 					}
@@ -253,7 +257,7 @@ int main(int argc, char *argv[])
 
 			printf("\n");
 
-			show_info(&cards[i], &i2c);
+			show_info(&cards[i], &i2c, profile);
 
 			printf("\n");
 
